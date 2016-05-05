@@ -84,6 +84,7 @@ NDTjs.prototype.logger = function (logMessage, debugging) {
  * @returns {boolean} Browser supports necessary functions for test client.
  */
 NDTjs.prototype.checkBrowserSupport = function () {
+  if (typeof window != "undefined") self = window;
   if (self.WebSocket === undefined && self.MozWebSocket === undefined) {
     throw this.UnsupportedBrowser('No Websockets');
   }
