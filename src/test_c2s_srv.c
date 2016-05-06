@@ -23,7 +23,7 @@
 #include "jsonutils.h"
 #include "websocket.h"
 
-/** 
+/**
  * Use read or SSL_read in their raw forms. We want this to go as fast
  * as possible and we do not care about the contents of buff.
  * @param conn The Connection to use
@@ -180,6 +180,17 @@ void drain_old_clients(Connection* c2s_conns, int streamsNum, char* buff, size_t
   }
 }
 
+/* Makes the passed-in file descriptor into one that will not block.
+ * @param fd the file descriptor
+ * @returns non-zero if successful, zero on failure with errno as set by fcntl.
+ */
+int make_non_blocking(int fd) {
+  int flags;
+  flags = fcntl(fd, F_GETFL, NULL);
+  if (flags == -1) return 0;
+  return fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0;
+}
+
 // How long to sleep to avoid a race condition.  This is a bad hack.
 // At 150k tests per day, this one sleep(2) wastes 83 hours of peoples'
 // lives every day.
@@ -239,6 +250,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   tcp_stat_group *group = NULL;
   /* The pipe that will return packet pair results */
   int mon_pipe[2];
+  int packet_trace_running = 0;
   pid_t c2s_childpid = 0;       // child process pids
   int msgretvalue, read_error;  // used during the "read"/"write" process
   int i;                  // used as loop iterator
@@ -246,6 +258,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   int retvalue = 0;
   int streamsNum = 1;
   int activeStreams = 1;
+  int local_errno;
 
   struct sockaddr_storage cli_addr[MAX_STREAMS];
   Connection c2s_conns[MAX_STREAMS];
@@ -517,19 +530,40 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     }
 
     // Get data collected from packet tracing into the C2S "ndttrace" file
-    memset(tmpstr, 0, 256);
-    for (i = 0; i < 5; i++) {
-      msgretvalue = read(mon_pipe[0], tmpstr, 128);
-      if ((msgretvalue == -1) && (errno == EINTR))
-        continue;
-      break;
-    }
+    FD_ZERO(&rfd);
+    FD_SET(mon_pipe[0], &rfd);
+    memset(&sel_tv, 0, sizeof(sel_tv));
+    sel_tv.tv_sec = 1;  // Wait for up to 1 second for the trace to start.
+    msgretvalue = select(mon_pipe[0] + 1, &rfd, NULL, NULL, &sel_tv);
+    packet_trace_running = (msgretvalue == 1);
 
-    if (strlen(tmpstr) > 5)
-      memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
-    // name of nettrace file passed back from pcap child
-    log_println(3, "--tracefile after packet_trace %s",
-                meta.c2s_ndttrace);
+    if (packet_trace_running) {
+      memset(tmpstr, 0, 256);
+      for (i = 0; i < 5; i++) {
+        msgretvalue = read(mon_pipe[0], tmpstr, 128);
+        if ((msgretvalue == -1) && (errno == EINTR))
+          continue;
+        break;
+      }
+
+      if (strlen(tmpstr) > 5)
+        memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
+      // name of nettrace file passed back from pcap child
+      log_println(3, "--tracefile after packet_trace %s",
+                  meta.c2s_ndttrace);
+    } else {
+      log_println(0, "Packet trace was unable to be created");
+      // Attempt to shut down the trace, but make sure that all attempts to
+      // write to the pipe will never block.
+      if (make_non_blocking(mon_pipe[1]) && make_non_blocking(mon_pipe[0])) {
+        stop_packet_trace(mon_pipe);
+      } else {
+        log_println(0,
+                    "Couldn't make pipe non-blocking (errno=%d) and so was "
+                    "unable to safely call stop_packet_trace",
+                    errno);
+      }
+    }
   }
 
   log_println(5, "C2S test Parent thinks pipe() returned fd0=%d, fd1=%d",
@@ -663,7 +697,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
 
   // Next, send speed-chk a flag to retrieve the data it collected.
   // Skip this step if speed-chk isn't running.
-  if (getuid() == 0) {
+  if (packet_trace_running) {
     log_println(1, "Signal USR1(%d) sent to child [%d]", SIGUSR1,
                 c2s_childpid);
     testOptions->child1 = c2s_childpid;
@@ -675,12 +709,21 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     i = 0;
 
     for (;;) {
-      msgretvalue = select(mon_pipe[0] + 1, &rfd, NULL, NULL,
-                           &sel_tv);
-      if ((msgretvalue == -1) && (errno == EINTR))
-        continue;
-      if (((msgretvalue == -1) && (errno != EINTR))
-          || (msgretvalue == 0)) {
+      msgretvalue = select(mon_pipe[0] + 1, &rfd, NULL, NULL, &sel_tv);
+      if (msgretvalue <= 0) {
+        // Save a copy of errno in case FD_ functions change it.
+        local_errno = (msgretvalue == -1) ? errno : 0;
+        if (local_errno != 0) {
+          // From the select() man page:
+          //   On error ... the sets and timeout become undefined, so do not
+          //   rely on their contents after an error.
+          FD_ZERO(&rfd);
+          FD_SET(mon_pipe[0], &rfd);
+          sel_tv.tv_sec = 1;
+          sel_tv.tv_usec = 100000;
+        }
+        if (local_errno == EINTR) continue;
+
         log_println(4, "Failed to read pkt-pair data from C2S flow, "
                     "retcode=%d, reason=%d", msgretvalue, errno);
         snprintf(spds[(*spd_index)++],
@@ -690,12 +733,11 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
                  sizeof(spds[*spd_index]),
                  " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
         break;
-      }
-      /* There is something to read, so get it from the pktpair child.  If an interrupt occurs,
-       * just skip the read and go on
-       * RAC 2/8/10
-       */
-      if (msgretvalue > 0) {
+      } else {
+        /* There is something to read, so get it from the pktpair child.  If an
+         * interrupt occurs, just skip the read and go on
+         * RAC 2/8/10
+         */
         if ((msgretvalue = read(mon_pipe[0], spds[*spd_index],
                                 sizeof(spds[*spd_index]))) < 0) {
           snprintf(
@@ -720,7 +762,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
                         testOptions->connection_flags, JSON_SINGLE_VALUE);
 
   //  Close opened resources for packet capture
-  if (getuid() == 0) {
+  if (packet_trace_running) {
     stop_packet_trace(mon_pipe);
   }
 
