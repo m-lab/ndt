@@ -39,6 +39,7 @@ a img {
 #warning-plugin, #warning-websocket {
   color: red;
   margin: 5px;
+  display: none;
 }
 .page {
   width: 640px;
