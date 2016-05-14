@@ -1,18 +1,19 @@
+/**
+ * @fileoverview Reflects the functionality that is used on the NDT frontend on
+ * the mlab website.
+ *
+ * Dependencies: ndt-client-wrapper.js ndt-wrapper.js, ndt-browser-client.js,
+ * gauge.min.js, jQuery
+ */
+
+'use strict';
+
 if (typeof simulate === 'undefined') {
   var simulate = false;
 }
 
 $(function(){
   jQuery.fx.interval = 50;
-  $('#welcome').show();
-  $('#copyButton').click(
-    function(){
-      copyToClipboardMsg($('#copyTarget'), 'copy-msg');
-    });
-  $('.embed').click(
-    function(){
-     $('#copy-code').slideToggle('slow');
-    });
   if (simulate) {
     setTimeout(initializeTest, 1000);
     return;
@@ -46,11 +47,16 @@ var gaugeMaxValue = 1000;
 
 // PRIMARY METHODS
 
+/**
+ * Sets up the front end to run NDT client by initializing the spped gauges,
+ * setting the initial phase to "welcome", and adding event listeners for
+ * result page tabs/buttons
+ */
 function initializeTest() {
   // Initialize gauges
   initializeGauges();
 
-  // Initialize start buttons
+  // Initialize start button
   $('.start.button').click(startTest);
 
   // Results view selector
@@ -60,11 +66,16 @@ function initializeTest() {
 
   $('body').removeClass('initializing');
   $('body').addClass('ready');
-  //return showPage('results');
   setPhase(PHASE_WELCOME);
 }
 
+/**
+ * Function that starts the NDT test executing.  Depending on what is returned
+ * from NDT library, accounts for using a websocket or Java Applet type of test
+ * @param {event} - event that triggered function
+ */
 function startTest(evt) {
+  //stop button click behavior and start NDT test
   evt.stopPropagation();
   evt.preventDefault();
   if (simulate) {
@@ -87,6 +98,10 @@ function startTest(evt) {
   monitorTest();
 }
 
+/**
+ * Function used for testing purposes to simulate an NDT test without actually
+ * interacting with the backend data.
+ */
 function simulateTest() {
   setPhase(PHASE_RESULTS);
   return;
@@ -96,16 +111,14 @@ function simulateTest() {
   setTimeout(function(){ setPhase(PHASE_RESULTS) }, 6000);
 }
 
+/**
+ * Contains functionality that will handle errors as well as update the front
+ * end with speed information and change of status phases.
+ * @return {boolean} - optional, if test is completed or errored out.
+ */
 function monitorTest() {
   var message = NDT.testError();
   var currentStatus = NDT.testStatus();
-
-  /*
-  var currentStatus = testStatus();
-  debug(currentStatus);
-  var diagnosis = testDiagnosis();
-  debug(diagnosis);
-  */
 
   if (message.match(/not run/) && currentPhase != PHASE_LOADING) {
     setPhase(PHASE_WELCOME);
@@ -138,8 +151,6 @@ function monitorTest() {
 
   setTimeout(monitorTest, 1000);
 }
-
-
 
 // PHASES
 
@@ -235,9 +246,13 @@ function setPhase(phase) {
   currentPhase = phase;
 }
 
-
 // PAGES
-
+/**
+ * Shows or hides certain container elements on the front end depending on the
+ * phase the test is currently in.
+ * @param {string} id of page to be shown
+ * @param {string} optional, callback method
+ */
 function showPage(page, callback) {
   debug('Show page: ' + page);
   if (page == currentPage) {
@@ -256,7 +271,6 @@ function showPage(page, callback) {
   currentPage = page;
 }
 
-
 // RESULTS
 
 function showResultsSummary() {
@@ -271,6 +285,10 @@ function showResultsAdvanced() {
   showResultsPage('advanced');
 }
 
+/**
+ * Shows or hides certain tabs on results screen
+ * @param {string} id of tab
+ */
 function showResultsPage(page) {
   debug('Results: show ' + page);
   var pages = ['summary', 'details', 'advanced'];
@@ -279,9 +297,12 @@ function showResultsPage(page) {
   }
 }
 
-
 // GAUGE
 
+/**
+ * Sets up gauges used in client to display upload/download speeds as results
+ * are coming in.
+ */
 function initializeGauges() {
   var gaugeValues = [];
 
@@ -356,6 +377,9 @@ function updateGaugeValue() {
 
 // TESTING JAVA/WEBSOCKET CLIENT
 
+/**
+ * Parses, formats, and displays final diagnostic information for NDT test
+ */
 function testDiagnosis() {
   var div = document.createElement('div');
 
@@ -453,6 +477,10 @@ function printNumberValue(value) {
   return isNaN(value) ? '-' : value;
 }
 
+/**
+ * Parses, formats, and displays final summary of diagnostic information for
+ * NDT test
+ */
 function testDetails() {
   if (simulate) return 'Test details';
 
@@ -532,8 +560,11 @@ function isPluginLoaded() {
   }
 }
 
-// Attempts to determine the absolute path of a script, minus the name of the
-// script itself.
+/**
+ * Attempts to determine the absolute path of a script, minus the name of the
+ * script itself.
+ * @return {string} path of script
+ */
 function getScriptPath() {
   var scripts = document.getElementsByTagName('SCRIPT');
   var fileRegex = new RegExp('\/ndt-wrapper\.js$');
