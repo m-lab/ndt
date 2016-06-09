@@ -6,6 +6,9 @@
  * gauge.min.js, jQuery
  */
 
+/*jslint bitwise: true, browser: true, indent: 2, nomen: true */
+/*global $, jQuery, Gauge, NDT, simulate*/
+
 'use strict';
 
 if (typeof simulate === 'undefined') {
@@ -75,6 +78,8 @@ function initializeTest() {
  * @param {event} - event that triggered function
  */
 function startTest(evt) {
+  var clientProtocol;
+
   //stop button click behavior and start NDT test
   evt.stopPropagation();
   evt.preventDefault();
@@ -82,7 +87,7 @@ function startTest(evt) {
     return simulateTest();
   } else {
     $('#backendContainer').empty();
-    var clientProtocol = NDT.startTest();
+    clientProtocol = NDT.startTest();
     if (clientProtocol == false) {
       $('#warning-plugin').show();
       return false;
@@ -482,11 +487,12 @@ function printNumberValue(value) {
  * NDT test
  */
 function testDetails() {
+  var d = '',
+    errorMsg;
+
   if (simulate) return 'Test details';
 
-  var d = '';
-
-  var errorMsg = NDT.testError();
+  errorMsg = NDT.testError();
   if (errorMsg.match(/failed/)) {
     d += 'Error occured while performing test: <br>'.bold();
     if (errorMsg.match(/#2048/)) {
