@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Reflects the functionality that is used on the NDT frontend on
+ * the mlab website.
+ *
+ * Dependencies: ndt-client-wrapper.js ndt-wrapper.js, ndt-browser-client.js,
+ * gauge.min.js, jQuery
+ */
+
+/*jslint bitwise: true, browser: true, indent: 2, nomen: true */
+/*global $, jQuery, Gauge, NDT, simulate*/
+
+'use strict';
+
 if (typeof simulate === 'undefined') {
   var simulate = false;
 }
@@ -8,7 +21,6 @@ $(function(){
     setTimeout(initializeTest, 1000);
     return;
   }
-  checkInstalledPlugins();
   initializeTest();
 });
 
@@ -31,12 +43,6 @@ var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
 var transitionSpeed = 400;
 
-// A front-end implementation could define some specific server. If not, then
-// just use the current server's hostname.
-if (typeof window.ndtServer === 'undefined') {
-  var ndtServer = location.hostname;
-}
-
 // Gauges used for showing download/upload speed
 var downloadGauge, uploadGauge;
 var gaugeUpdateInterval;
@@ -44,11 +50,16 @@ var gaugeMaxValue = 1000;
 
 // PRIMARY METHODS
 
+/**
+ * Sets up the front end to run NDT client by initializing the spped gauges,
+ * setting the initial phase to "welcome", and adding event listeners for
+ * result page tabs/buttons
+ */
 function initializeTest() {
   // Initialize gauges
   initializeGauges();
 
-  // Initialize start buttons
+  // Initialize start button
   $('.start.button').click(startTest);
 
   // Results view selector
@@ -58,29 +69,44 @@ function initializeTest() {
 
   $('body').removeClass('initializing');
   $('body').addClass('ready');
-  //return showPage('results');
   setPhase(PHASE_WELCOME);
 }
 
+/**
+ * Function that starts the NDT test executing.  Depending on what is returned
+ * from NDT library, accounts for using a websocket or Java Applet type of test
+ * @param {event} - event that triggered function
+ */
 function startTest(evt) {
+  var clientProtocol;
+
+  //stop button click behavior and start NDT test
   evt.stopPropagation();
   evt.preventDefault();
-  createBackend();
-  if (!isPluginLoaded()) {
-    $('#warning-plugin').show();
-    return;
+  if (simulate) {
+    return simulateTest();
+  } else {
+    $('#backendContainer').empty();
+    clientProtocol = NDT.startTest();
+    if (clientProtocol == false) {
+      $('#warning-plugin').show();
+      return false;
+    } else if (clientProtocol != true) {
+      $('#backendContainer').append(app);
+    }
   }
-  $('#warning-plugin').hide();
   $('#javaButton').attr('disabled', true);
   $('#websocketButton').attr('disabled', true);
   showPage('test', resetGauges);
   $('#rttValue').html('');
-  if (simulate) return simulateTest();
   currentPhase = PHASE_WELCOME;
-  testNDT().run_test(ndtServer);
   monitorTest();
 }
 
+/**
+ * Function used for testing purposes to simulate an NDT test without actually
+ * interacting with the backend data.
+ */
 function simulateTest() {
   setPhase(PHASE_RESULTS);
   return;
@@ -90,16 +116,14 @@ function simulateTest() {
   setTimeout(function(){ setPhase(PHASE_RESULTS) }, 6000);
 }
 
+/**
+ * Contains functionality that will handle errors as well as update the front
+ * end with speed information and change of status phases.
+ * @return {boolean} - optional, if test is completed or errored out.
+ */
 function monitorTest() {
-  var message = testError();
-  var currentStatus = testStatus();
-
-  /*
-  var currentStatus = testStatus();
-  debug(currentStatus);
-  var diagnosis = testDiagnosis();
-  debug(diagnosis);
-  */
+  var message = NDT.testError();
+  var currentStatus = NDT.testStatus();
 
   if (message.match(/not run/) && currentPhase != PHASE_LOADING) {
     setPhase(PHASE_WELCOME);
@@ -121,19 +145,17 @@ function monitorTest() {
   }
 
   if (!currentStatus.match(/Middleboxes/) && !currentStatus.match(/notStarted/)
-        && !remoteServer().match(/ndt/) && currentPhase == PHASE_PREPARING) {
-    debug('Remote server is ' + remoteServer());
+        && !NDT.remoteServer().match(/ndt/) && currentPhase == PHASE_PREPARING) {
+    debug('Remote server is ' + NDT.remoteServer());
     setPhase(PHASE_UPLOAD);
   }
 
-  if (remoteServer() !== 'unknown' && currentPhase < PHASE_PREPARING) {
+  if (NDT.remoteServer() !== 'unknown' && currentPhase < PHASE_PREPARING) {
     setPhase(PHASE_PREPARING);
   }
 
   setTimeout(monitorTest, 1000);
 }
-
-
 
 // PHASES
 
@@ -161,8 +183,8 @@ function setPhase(phase) {
       var pcBuffSpdLimit, rtt, gaugeConfig = [];
       debug('UPLOAD TEST');
 
-      pcBuffSpdLimit = speedLimit();
-      rtt = averageRoundTrip();
+      pcBuffSpdLimit = NDT.speedLimit();
+      rtt = NDT.averageRoundTrip();
 
       if (isNaN(rtt)) {
         $('#rttValue').html('n/a');
@@ -198,7 +220,7 @@ function setPhase(phase) {
         updateGaugeValue();
       },1000);
 
-      $('#test .remote.location .address').get(0).innerHTML = remoteServer();
+      $('#test .remote.location .address').get(0).innerHTML = NDT.remoteServer();
       break;
 
     case PHASE_DOWNLOAD:
@@ -214,7 +236,7 @@ function setPhase(phase) {
 
       printDownloadSpeed();
       printUploadSpeed();
-      $('#latency').html(printNumberValue(Math.round(averageRoundTrip())));
+      $('#latency').html(printNumberValue(Math.round(NDT.averageRoundTrip())));
       $('#jitter').html(printJitter(false));
       $('#test-details').html(testDetails());
       $('#test-advanced').append(testDiagnosis());
@@ -229,9 +251,13 @@ function setPhase(phase) {
   currentPhase = phase;
 }
 
-
 // PAGES
-
+/**
+ * Shows or hides certain container elements on the front end depending on the
+ * phase the test is currently in.
+ * @param {string} id of page to be shown
+ * @param {string} optional, callback method
+ */
 function showPage(page, callback) {
   debug('Show page: ' + page);
   if (page == currentPage) {
@@ -250,7 +276,6 @@ function showPage(page, callback) {
   currentPage = page;
 }
 
-
 // RESULTS
 
 function showResultsSummary() {
@@ -265,6 +290,10 @@ function showResultsAdvanced() {
   showResultsPage('advanced');
 }
 
+/**
+ * Shows or hides certain tabs on results screen
+ * @param {string} id of tab
+ */
 function showResultsPage(page) {
   debug('Results: show ' + page);
   var pages = ['summary', 'details', 'advanced'];
@@ -273,9 +302,12 @@ function showResultsPage(page) {
   }
 }
 
-
 // GAUGE
 
+/**
+ * Sets up gauges used in client to display upload/download speeds as results
+ * are coming in.
+ */
 function initializeGauges() {
   var gaugeValues = [];
 
@@ -330,18 +362,18 @@ function resetGauges() {
 }
 
 function updateGaugeValue() {
-  var downloadSpeedVal = downloadSpeed();
-  var uploadSpeedVal = uploadSpeed(false);
+  var downloadSpeedVal = NDT.downloadSpeed();
+  var uploadSpeedVal = NDT.uploadSpeed(false);
 
   if (currentPhase == PHASE_UPLOAD) {
     uploadGauge.updateConfig({
-	  units: getSpeedUnit(uploadSpeedVal)
-	});
-	uploadGauge.setValue(getJustfiedSpeed(uploadSpeedVal));
+    units: getSpeedUnit(uploadSpeedVal)
+  });
+  uploadGauge.setValue(getJustfiedSpeed(uploadSpeedVal));
   } else if (currentPhase == PHASE_DOWNLOAD) {
     downloadGauge.updateConfig({
-	  units: getSpeedUnit(downloadSpeedVal)
-	});
+    units: getSpeedUnit(downloadSpeedVal)
+  });
     downloadGauge.setValue(getJustfiedSpeed(downloadSpeedVal));
   } else {
     clearInterval(gaugeUpdateInterval);
@@ -350,18 +382,9 @@ function updateGaugeValue() {
 
 // TESTING JAVA/WEBSOCKET CLIENT
 
-function testNDT() {
-  if (websocket_client) {
-    return websocket_client;
-  }
-
-  return $('#NDT');
-}
-
-function testStatus() {
-  return testNDT().get_status();
-}
-
+/**
+ * Parses, formats, and displays final diagnostic information for NDT test
+ */
 function testDiagnosis() {
   var div = document.createElement('div');
 
@@ -370,7 +393,7 @@ function testDiagnosis() {
     return div;
   }
 
-  var diagnosisArray = testNDT().get_diagnosis().split('\n');
+  var diagnosisArray = NDT.testNDT().get_diagnosis().split('\n');
   var txt = '';
   var table;
   var isTable = false;
@@ -390,7 +413,7 @@ function testDiagnosis() {
         } else {
           isTable = false;
           txt = txt + value;
-        }		
+        }
       } else {
         if (value.indexOf('=== Results sent by the server ===') != -1) {
           table = document.createElement('table');
@@ -410,50 +433,15 @@ function testDiagnosis() {
   return div;
 }
 
-function testError() {
-  return testNDT().get_errmsg();
-}
-
-function remoteServer() {
-  if (simulate) return '0.0.0.0';
-  return testNDT().get_host();
-}
-
-function uploadSpeed(raw) {
-  if (simulate) return 0;
-  var speed = testNDT().getNDTvar('ClientToServerSpeed');
-  return raw ? speed : parseFloat(speed);
-}
-
-function downloadSpeed() {
-  if (simulate) return 0;
-  return parseFloat(testNDT().getNDTvar('ServerToClientSpeed'));
-}
-
-function averageRoundTrip() {
-  if (simulate) return 0;
-  return parseFloat(testNDT().getNDTvar('avgrtt'));
-}
-
-function jitter() {
-  if (simulate) return 0;
-  return parseFloat(testNDT().getNDTvar('Jitter'));
-}
-
-function speedLimit() {
-  if (simulate) return 0;
-  return parseFloat(testNDT().get_PcBuffSpdLimit());
-}
-
 function printPacketLoss() {
-  var packetLoss = parseFloat(testNDT().getNDTvar('loss'));
+  var packetLoss = parseFloat(NDT.testNDT().getNDTvar('loss'));
   packetLoss = (packetLoss*100).toFixed(2);
   return packetLoss;
 }
 
 function printJitter(boldValue) {
   var retStr = '';
-  var jitterValue = jitter();
+  var jitterValue = NDT.jitter();
   if (jitterValue >= 1000) {
     retStr += (boldValue ? '<b>' : '') + printNumberValue(jitterValue/1000) + (boldValue ? '</b>' : '') + ' sec';
   } else {
@@ -474,19 +462,19 @@ function getJustfiedSpeed(speedInKB) {
 }
 
 function printDownloadSpeed() {
-  var downloadSpeedVal = downloadSpeed();
+  var downloadSpeedVal = NDT.downloadSpeed();
   $('#download-speed').html(getJustfiedSpeed(downloadSpeedVal));
   $('#download-speed-units').html(getSpeedUnit(downloadSpeedVal));
 }
 
 function printUploadSpeed() {
-  var uploadSpeedVal = uploadSpeed(false);
+  var uploadSpeedVal = NDT.uploadSpeed(false);
   $('#upload-speed').html(getJustfiedSpeed(uploadSpeedVal));
   $('#upload-speed-units').html(getSpeedUnit(uploadSpeedVal));
 }
 
 function readNDTvar(variable) {
-  var ret = testNDT().getNDTvar(variable);
+  var ret = NDT.testNDT().getNDTvar(variable);
   return !ret ? '-' : ret;
 }
 
@@ -494,12 +482,17 @@ function printNumberValue(value) {
   return isNaN(value) ? '-' : value;
 }
 
+/**
+ * Parses, formats, and displays final summary of diagnostic information for
+ * NDT test
+ */
 function testDetails() {
+  var d = '',
+    errorMsg;
+
   if (simulate) return 'Test details';
 
-  var d = '';
-
-  var errorMsg = testError();
+  errorMsg = NDT.testError();
   if (errorMsg.match(/failed/)) {
     d += 'Error occured while performing test: <br>'.bold();
     if (errorMsg.match(/#2048/)) {
@@ -516,7 +509,7 @@ function testDetails() {
 
   d += 'TCP receive window: ' + readNDTvar('CurRwinRcvd').bold() + ' current, ' + readNDTvar('MaxRwinRcvd').bold() + ' maximum<br>';
   d += '<b>' + printNumberValue(printPacketLoss()) + '</b> % of packets lost during test<br>';
-  d += 'Round trip time: ' + readNDTvar('MinRTT').bold() + ' msec (minimum), ' + readNDTvar('MaxRTT').bold() + ' msec (maximum), <b>' + printNumberValue(Math.round(averageRoundTrip())) + '</b> msec (average)<br>';
+  d += 'Round trip time: ' + readNDTvar('MinRTT').bold() + ' msec (minimum), ' + readNDTvar('MaxRTT').bold() + ' msec (maximum), <b>' + printNumberValue(Math.round(NDT.averageRoundTrip())) + '</b> msec (average)<br>';
   d += 'Jitter: ' + printNumberValue(printJitter(true)) + '<br>';
   d += readNDTvar('waitsec').bold() + ' seconds spend waiting following a timeout<br>';
   d += 'TCP time-out counter: ' + readNDTvar('CurRTO').bold() + '<br>';
@@ -556,49 +549,6 @@ function testDetails() {
   return d;
 }
 
-// BACKEND METHODS
-function useJavaAsBackend() {
-  $('#warning-websocket').hide();
-  $('#rtt').show();
-  $('#rttValue').show();
-
-  $('.warning-environment').innerHTML = '';
-
-  use_websocket_client = false;
-
-  $('#websocketButton').removeClass('active');
-  $('#javaButton').addClass('active');
-}
-
-function useWebsocketAsBackend() {
-  $('#rtt').hide();
-  $('#rttValue').hide();
-  $('#warning-websocket').show();
-
-  use_websocket_client = true;
-
-  $('#javaButton').removeClass('active');
-  $('#websocketButton').addClass('active');
-}
-
-function createBackend() {
-  $('#backendContainer').empty();
-
-  if (use_websocket_client) {
-    websocket_client = new NDTWrapper(window.ndtServer);
-  }
-  else {
-    var app = document.createElement('applet');
-    app.id = 'NDT';
-    app.name = 'NDT';
-    app.archive = 'Tcpbw100.jar';
-    app.code = 'edu.internet2.ndt.Tcpbw100.class';
-    app.width = '600';
-    app.height = '10';
-    $('#backendContainer').append(app);
-  }
-}
-
 // UTILITIES
 
 function debug(message) {
@@ -616,47 +566,11 @@ function isPluginLoaded() {
   }
 }
 
-function checkInstalledPlugins() {
-  var hasJava = false;
-  var hasWebsockets = false;
-
-  $('#warning-plugin').hide();
-  $('#warning-websocket').hide();
-
-  hasJava = true;
-  if (typeof deployJava !== 'undefined') {
-    if (deployJava.getJREs() == '') {
-      hasJava = false;
-    }
-  }
-  hasWebsockets = false;
-  try {
-    var ndt_js = new NDTjs();
-    if (ndt_js.checkBrowserSupport()) {
-      hasWebsockets = true;
-    }
-  } catch(e) {
-    hasWebsockets = false;
-  }
-
-  if (!hasWebsockets) {
-    $('#websocketButton').attr('disabled', true);
-  }
-
-  if (!hasJava) {
-    $('#javaButton').attr('disabled', true);
-  }
-
-  if (hasWebsockets) {
-    useWebsocketAsBackend();
-  }
-  else if (hasJava) {
-    useJavaAsBackend();
-  }
-}
-
-// Attempts to determine the absolute path of a script, minus the name of the
-// script itself.
+/**
+ * Attempts to determine the absolute path of a script, minus the name of the
+ * script itself.
+ * @return {string} path of script
+ */
 function getScriptPath() {
   var scripts = document.getElementsByTagName('SCRIPT');
   var fileRegex = new RegExp('\/ndt-wrapper\.js$');
