@@ -43,12 +43,12 @@ function NDTLibjs() {
  * Operates on an instance of NDT to begin executing a test.
  * @return - {object} Returns the protocol or an error if no ndtServer set.
  */
-NDTLibjs.prototype.startTest_ = function () {
+NDTLibjs.prototype.startTest = function () {
   try {
     if (this.ndtServer) {
       this.use_websocket_client_ = this.checkInstalledPlugins_();
       this.websocket_client_ = this.createBackend_(this.use_websocket_client_);
-      this.testNDT_().run_test(this.ndtServer);
+      this.testNDT().run_test(this.ndtServer);
       return this.websocket_client_;
     }
     throw new Error("No MLab Server could be found.");
@@ -142,74 +142,74 @@ NDTLibjs.prototype.getServer_ = function () {
  * Gets the test status of the current NDT test
  * @return - {string} status of current test
  */
-NDTLibjs.prototype.testStatus = function() {
+NDTLibjs.prototype.testStatus = function () {
   return this.testNDT().get_status();
-}
+};
 
 /**
  * Gets error messages of the current NDT test
  * @return - {string} error message if occurred
  */
-NDTLibjs.prototype.testError = function() {
+NDTLibjs.prototype.testError = function () {
   return this.testNDT().get_errmsg();
-}
+};
 
 /**
  * Gets hostname of server running test
  * @return - {string} hostname of server
  */
-NDTLibjs.prototype.remoteServer = function() {
-  if (this.simulate) return '0.0.0.0';
+NDTLibjs.prototype.remoteServer = function () {
+  if (this.simulate) { return '0.0.0.0'; }
   return this.testNDT().get_host();
-}
+};
 
 /**
  * Gets the Upload speed of the current NDT test
  * @return - {float} speed of uploading to server
  */
-NDTLibjs.prototype.uploadSpeed = function(raw) {
+NDTLibjs.prototype.uploadSpeed = function (raw) {
   var speed;
 
-  if (this.simulate) return 0;
+  if (this.simulate) { return 0; }
   speed = this.testNDT().getNDTvar('ClientToServerSpeed');
   return raw ? speed : parseFloat(speed);
-}
+};
 
 /**
  * Gets the Download speed of the current NDT test
  * @return - {float} speed of downloading from server
  */
-NDTLibjs.prototype.downloadSpeed = function() {
-  if (this.simulate) return 0;
+NDTLibjs.prototype.downloadSpeed = function () {
+  if (this.simulate) { return 0; }
   return parseFloat(this.testNDT().getNDTvar('ServerToClientSpeed'));
-}
+};
 
 /**
  * Gets the Average round trip speed of the current NDT test
  * @return - {float} speed of round trip
  */
-NDTLibjs.prototype.averageRoundTrip = function() {
-  if (this.simulate) return 0;
+NDTLibjs.prototype.averageRoundTrip = function () {
+  if (this.simulate) { return 0; }
   return parseFloat(this.testNDT().getNDTvar('avgrtt'));
-}
+};
 
 /**
  * Gets the Jitter value of the current NDT test
  * @return - {float} jitter value
  */
-NDTLibjs.prototype.jitter = function() {
-  if (this.simulate) return 0;
+NDTLibjs.prototype.jitter = function () {
+  if (this.simulate) { return 0; }
   return parseFloat(this.testNDT().getNDTvar('Jitter'));
-}
+};
 
 /**
  * Gets the current top speed of tests
  * @return - {float} speed limit value during current test
  */
-NDTLibjs.prototype.speedLimit = function() {
-  if (this.simulate) return 0;
+NDTLibjs.prototype.speedLimit = function () {
+  if (this.simulate) { return 0; }
   return parseFloat(this.testNDT().get_PcBuffSpdLimit());
-}
+};
 
 // instantiate NDT object
 var NDT = {};
