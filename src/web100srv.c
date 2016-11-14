@@ -1403,11 +1403,13 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   tcp_stat_agent *agent;
   Connection ctl = {-1, NULL};
   ctl.socket = ctlsockfd;
+
   // this is the child process, it handles the connection with the client and
   // runs the actual tests.
   // First, start the watchdog timer
   alarm(300);
-
+  // Next, set send and receive timeouts on the socket
+  set_socket_timeout_or_die(ctl.socket);
   // Set up the connection with the client (with optional SSL and websockets)
   if (ssl_context != NULL) {
     if (setup_SSL_connection(&ctl, ssl_context) != 0) {
