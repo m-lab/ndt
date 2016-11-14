@@ -516,6 +516,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         close_all_connections(c2s_conns, streamsNum);
         // Don't capture more than 14 seconds of packet traces:
         //   2 seconds of sleep + 10 seconds of test + 2 seconds of slop
+        // Causes a call to cleanup() if allowed to run for too long.
         alarm(testDuration + RACE_CONDITION_WAIT_TIME + 2);
         log_println(
             5,
@@ -572,7 +573,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   sleep(RACE_CONDITION_WAIT_TIME);
   // Reset alarm() again. This 10 sec test should finish before this signal is
   // generated, but sleep() can render existing alarm()s invalid, and alarm() is
-  // our watchdog timer.
+  // our watchdog timer. Watchdog code is in cleanup().
   alarm(30);
 
   // send empty TEST_START indicating start of the test

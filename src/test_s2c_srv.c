@@ -374,6 +374,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           if ((s2c_childpid = fork()) == 0) {
             // Don't capture more than 12 seconds of packet traces:
             //   10 second test + 2 seconds of slop
+            // Causes a call to cleanup() if allowed to run for too long.
             alarm(testDuration + 2);
             close(testOptions->s2csockfd);
             for (i = 0; i < streamsNum; i++) {
@@ -522,7 +523,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
                               streams[i].conn, group);
         }
       }
-      /* alarm(20); */
       tmptime = secs();  // current time
       tx_duration = tmptime + testDuration;  // set timeout to test duration s in future
 
@@ -720,9 +720,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
 
       log_println(1, "%6.0f kbps inbound pid-%d", x2cspd, s2c_childpid);
     }
-    /* reset alarm() again, this 10 sec test should finish before this signal
-     * is generated.  */
-    /* alarm(30); */
     // Get web100 variables from snapshot taken earlier and send to client
     log_println(6, "S2C-Send web100 data vars to client pid=%d",
                 s2c_childpid);
