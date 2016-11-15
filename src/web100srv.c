@@ -343,7 +343,7 @@ void cleanup(int signo) {
       // true that every receipt of SIGALRM represents a bug.  Every receipt of
       // SIGALRM does mean, however, that the process should be killed.
       //
-      // Any code which installs an alternate handler of SIGALRM should be
+      // Any code that installs an alternate handler of SIGALRM should be
       // examined closely, as it could cause hung-forever child processes by
       // preventing the watchdog from barking. Currently the only such code is
       // in test_sfw.c
@@ -1902,6 +1902,12 @@ void perform_queue_maintenance(ndtchild **head) {
 
   // Walk the list of clients, sending the GO signal to clients that have
   // reached the front part of the queue.
+  //
+  // TODO: Keep track of how long each child has been running, and forcibly
+  // terminate any long-running children on the assumption that those children
+  // are deadlocked and will never exit on their own.  This would complement
+  // the child watchdog and provide another layer of defense against buggy test
+  // code.
   queue_position = 0;
   for (current = *head; current != NULL; current = current->next) {
     if (!current->running) {
