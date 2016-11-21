@@ -187,7 +187,6 @@ NDTWrapper.prototype.onfinish_cb = function (results) {
     this._ndt_vars = results;
     this._ndt_vars['ServerToClientSpeed'] = results['s2cRate'] / 1000;
     this._ndt_vars['ClientToServerSpeed'] = results['c2sRate'] / 1000;
-    this._ndt_vars['Jitter'] = results['MaxRTT'] - results['MinRTT'];
     this.build_diagnosis();
 };
 

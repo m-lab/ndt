@@ -215,7 +215,6 @@ function setPhase(phase) {
       printDownloadSpeed();
       printUploadSpeed();
       $('#latency').html(printNumberValue(Math.round(averageRoundTrip())));
-      $('#jitter').html(printJitter(false));
       $('#test-details').html(testDetails());
       $('#test-advanced').append(testDiagnosis());
       $('#javaButton').attr('disabled', false);
@@ -435,11 +434,6 @@ function averageRoundTrip() {
   return parseFloat(testNDT().getNDTvar('avgrtt'));
 }
 
-function jitter() {
-  if (simulate) return 0;
-  return parseFloat(testNDT().getNDTvar('Jitter'));
-}
-
 function speedLimit() {
   if (simulate) return 0;
   return parseFloat(testNDT().get_PcBuffSpdLimit());
@@ -449,17 +443,6 @@ function printPacketLoss() {
   var packetLoss = parseFloat(testNDT().getNDTvar('loss'));
   packetLoss = (packetLoss*100).toFixed(2);
   return packetLoss;
-}
-
-function printJitter(boldValue) {
-  var retStr = '';
-  var jitterValue = jitter();
-  if (jitterValue >= 1000) {
-    retStr += (boldValue ? '<b>' : '') + printNumberValue(jitterValue/1000) + (boldValue ? '</b>' : '') + ' sec';
-  } else {
-    retStr += (boldValue ? '<b>' : '') + printNumberValue(jitterValue) + (boldValue ? '</b>' : '') + ' msec';
-  }
-  return retStr;
 }
 
 function getSpeedUnit(speedInKB) {
@@ -517,7 +500,6 @@ function testDetails() {
   d += 'TCP receive window: ' + readNDTvar('CurRwinRcvd').bold() + ' current, ' + readNDTvar('MaxRwinRcvd').bold() + ' maximum<br>';
   d += '<b>' + printNumberValue(printPacketLoss()) + '</b> % of packets lost during test<br>';
   d += 'Round trip time: ' + readNDTvar('MinRTT').bold() + ' msec (minimum), ' + readNDTvar('MaxRTT').bold() + ' msec (maximum), <b>' + printNumberValue(Math.round(averageRoundTrip())) + '</b> msec (average)<br>';
-  d += 'Jitter: ' + printNumberValue(printJitter(true)) + '<br>';
   d += readNDTvar('waitsec').bold() + ' seconds spend waiting following a timeout<br>';
   d += 'TCP time-out counter: ' + readNDTvar('CurRTO').bold() + '<br>';
   d += readNDTvar('SACKsRcvd').bold() + ' selective acknowledgement packets received<br>';
