@@ -66,10 +66,18 @@ pid_t start_server(int port, char **extra_args) {
   siginfo_t server_status;
   char port_string[6];  // 32767 is the max port, so must hold 5 digits + \0
   int rv;
-  char *args_for_exec[256] = {"./web100srv", "--snaplog", "--tcpdump", "--cputime", "--log_dir", "/tmp", "--port", NULL};
+  char *args_for_exec[256] = {"./web100srv", "--snaplog", "--tcpdump",
+    "--cputime", "--log_dir", "/tmp", "-l", "/tmp/web100srv.log-XXXXXX",
+    "--port", NULL};
   int exec_args_index = 0;
   // Should be set to the first index of args_for_exec that is NULL
-  while (args_for_exec[exec_args_index] != NULL) exec_args_index++;
+  while (args_for_exec[exec_args_index] != NULL) {
+    if (strcmp(args_for_exec[exec_args_index],
+               "/tmp/web100srv.log-XXXXXX") == 0) {
+      mkstemp(args_for_exec[exec_args_index]);
+    }
+    exec_args_index++;
+  }
   log_println(1, "Starting the server");
   if ((server_pid = fork()) == 0) {
     sprintf(port_string, "%d", port);
