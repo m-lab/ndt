@@ -57,6 +57,9 @@ void make_certificate_files(char *private_key_file, char *certificate_file) {
   CHECK(system(create_certificate_command_line) == 0);
 }
 
+
+#define LOGFILE_TEMPLATE "/tmp/web100srv.log-XXXXXX"
+
 /** Starts the web100srv process. Either args must be NULL or the last element
  *  of **args must be NULL. */
 pid_t start_server(int port, char **extra_args) {
@@ -67,13 +70,12 @@ pid_t start_server(int port, char **extra_args) {
   char port_string[6];  // 32767 is the max port, so must hold 5 digits + \0
   int rv;
   char *args_for_exec[256] = {"./web100srv", "--snaplog", "--tcpdump",
-    "--cputime", "--log_dir", "/tmp", "-l", "/tmp/web100srv.log-XXXXXX",
-    "--port", NULL};
+    "--cputime", "--log_dir", "/tmp", "-l", LOGFILE_TEMPLATE, "--port", NULL};
   int exec_args_index = 0;
-  // Should be set to the first index of args_for_exec that is NULL
+  // set exec_args_index to the first index of args_for_exec that is NULL
   while (args_for_exec[exec_args_index] != NULL) {
-    if (strcmp(args_for_exec[exec_args_index],
-               "/tmp/web100srv.log-XXXXXX") == 0) {
+    // along the way, fill in the template for the test logs
+    if (strcmp(args_for_exec[exec_args_index], LOGFILE_TEMPLATE) == 0) {
       mkstemp(args_for_exec[exec_args_index]);
     }
     exec_args_index++;
