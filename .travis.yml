@@ -19,4 +19,3 @@ script:
 #- docker run gcr.io/mlab-pub/github-m-lab-builder /root/ndt_build_and_test.sh
 
 # TODO - collect coverage stats and export to coveralls.
-
