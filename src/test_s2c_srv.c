@@ -473,26 +473,27 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         buff[j] = (k++ & 0x7f);
       }
       if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
+        static int FAKE_BUFFSIZE = BUFFSIZE * 5;
         // Make sure the data has a websocket header
         ((unsigned char*)buff)[0] = 0x82;  // One frame of binary data
         // Depending on BUFFSIZE, the websocket header will be 2, 4, or 10
         // bytes big.  This header is constructed to comply with RFC 6455.
-        if (BUFFSIZE < 126) {
-          buff[1] = (BUFFSIZE-2) & 0x7F;
-        } else if (BUFFSIZE < 65536) {
+        if (FAKE_BUFFSIZE < 126) {
+          buff[1] = (FAKE_BUFFSIZE-2) & 0x7F;
+        } else if (FAKE_BUFFSIZE < 65536) {
           buff[1] = 126;
-          ((unsigned char*)buff)[2] = ((BUFFSIZE - 4) >> 8) & 0xFF;
-          ((unsigned char*)buff)[3] = (BUFFSIZE - 4) & 0xFF;
+          ((unsigned char*)buff)[2] = ((FAKE_BUFFSIZE - 4) >> 8) & 0xFF;
+          ((unsigned char*)buff)[3] = (FAKE_BUFFSIZE - 4) & 0xFF;
         } else {
           buff[1] = 127;
-          ((unsigned char*)buff)[2] = (((long long)BUFFSIZE - 10) >> 56) & 0xFF;
-          ((unsigned char*)buff)[3] = (((long long)BUFFSIZE - 10) >> 48) & 0xFF;
-          ((unsigned char*)buff)[4] = (((long long)BUFFSIZE - 10) >> 40) & 0xFF;
-          ((unsigned char*)buff)[5] = (((long long)BUFFSIZE - 10) >> 32) & 0xFF;
-          ((unsigned char*)buff)[6] = (((long long)BUFFSIZE - 10) >> 24) & 0xFF;
-          ((unsigned char*)buff)[7] = (((long long)BUFFSIZE - 10) >> 16) & 0xFF;
-          ((unsigned char*)buff)[8] = (((long long)BUFFSIZE - 10) >> 8) & 0xFF;
-          ((unsigned char*)buff)[9] = (BUFFSIZE - 10) & 0xFF;
+          ((unsigned char*)buff)[2] = (((long long)FAKE_BUFFSIZE - 10) >> 56) & 0xFF;
+          ((unsigned char*)buff)[3] = (((long long)FAKE_BUFFSIZE - 10) >> 48) & 0xFF;
+          ((unsigned char*)buff)[4] = (((long long)FAKE_BUFFSIZE - 10) >> 40) & 0xFF;
+          ((unsigned char*)buff)[5] = (((long long)FAKE_BUFFSIZE - 10) >> 32) & 0xFF;
+          ((unsigned char*)buff)[6] = (((long long)FAKE_BUFFSIZE - 10) >> 24) & 0xFF;
+          ((unsigned char*)buff)[7] = (((long long)FAKE_BUFFSIZE - 10) >> 16) & 0xFF;
+          ((unsigned char*)buff)[8] = (((long long)FAKE_BUFFSIZE - 10) >> 8) & 0xFF;
+          ((unsigned char*)buff)[9] = (FAKE_BUFFSIZE - 10) & 0xFF;
         }
       }
 
