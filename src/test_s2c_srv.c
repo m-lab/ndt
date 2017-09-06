@@ -473,7 +473,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         buff[j] = (k++ & 0x7f);
       }
       if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
-        static int FAKE_BUFFSIZE = BUFFSIZE * 50;
+        static int FAKE_BUFFSIZE = BUFFSIZE * 10;
         // Make sure the data has a websocket header
         ((unsigned char*)buff)[0] = 0x82;  // One frame of binary data
         // Depending on BUFFSIZE, the websocket header will be 2, 4, or 10
