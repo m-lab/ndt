@@ -8,7 +8,12 @@
 
 #include <assert.h>
 #include <pthread.h>
+
+#if USE_WEB100 || USE_WEB10G
 #include <web100.h>
+#else
+#include "dummytypedefs.h"
+#endif
 
 #include "test_sfw.h"
 #include "logging.h"
@@ -141,6 +146,7 @@ int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
   int msgLen, msgType;
   char* jsonMsgValue;
 
+#if USE_WEB100 || USE_WEB10G
 #if USE_WEB100
   web100_var* var;
   web100_connection* cn;
@@ -437,5 +443,6 @@ int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
     I2AddrFree(sfwsrv_addr);
     I2AddrFree(sfwcli_addr);
   }
+#endif // USE_WEB10o || USE_WEB10G
   return 0;
 }

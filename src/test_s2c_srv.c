@@ -11,7 +11,12 @@
 #include <pthread.h>
 #include <sys/times.h>
 #include <ctype.h>
+
+#if USE_WEB100 || USE_WEB10G
 #include <web100.h>
+#else
+#include "dummytypedefs.h"
+#endif
 
 #include "tests_srv.h"
 #include "strlutils.h"
@@ -360,9 +365,11 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     protolog_procstatus(testOptions->child0, testids, CONNECT_TYPE,
                         PROCESS_STARTED, xmitsfd[0].socket);
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd[0].socket, 0);
+#if USE_WEB100 || USE_WEB10G
     for (i = 0; i < streamsNum; ++i) {
       streams[i].conn = tcp_stat_connection_from_socket(agent, xmitsfd[i].socket);
     }
+#endif
 
     // set up packet capture. The data collected is used for bottleneck link
     // calculations
@@ -742,6 +749,8 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     for (i = 0; i < streamsNum; ++i) {
       estats_val_data_free(&snap[i]);
     }
+#else
+    ret = 0;
 #endif
 
     // If sending web100 variables above failed, indicate to client

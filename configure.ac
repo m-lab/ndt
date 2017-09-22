@@ -444,7 +444,6 @@ else
 SUMMARY_FAKEWWW="YES"
 fi
 
-if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
 if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
 if test -z "$HAVE_SSL_TRUE" && test -n "$HAVE_SSL_FALSE"; then
@@ -458,12 +457,12 @@ fi
 else
 SUMMARY_WEB100SRV="NO    (missing pcap headers)"
 fi
+if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
 SUMMARY_ANALYZE="YES"
 SUMMARY_VIEWTRACE="YES"
 SUMMARY_TRMKMAP="YES"
 SUMMARY_GENPLOT="YES"
 else
-SUMMARY_WEB100SRV="NO    (missing web100 library)"
 SUMMARY_ANALYZE="NO    (missing web100 library)"
 SUMMARY_VIEWTRACE="NO    (missing web100 library)"
 SUMMARY_TRMKMAP="NO    (missing web100 library)"

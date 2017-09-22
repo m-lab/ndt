@@ -31,11 +31,9 @@ sbin_PROGRAMS = $(ADD_FAKEWWW)
 noinst_PROGRAMS =
 TESTS =
 
-if HAVE_WEB100
 if HAVE_SSL
 if HAVE_JANSSON
 TESTS += web100_websocket_unit_tests web100_testoptions_unit_tests
-endif
 endif
 endif
 
@@ -56,11 +54,12 @@ endif
 
 if HAVE_WEB100
 bin_PROGRAMS += analyze viewtrace tr-mkmap genplot
+endif
+
 if HAVE_PCAP_H
 if HAVE_SSL
 if HAVE_JANSSON
 sbin_PROGRAMS += web100srv
-endif
 endif
 endif
 endif

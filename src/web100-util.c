@@ -9,7 +9,11 @@
 #include <ctype.h>
 #include <time.h>
 #include <assert.h>
+#if USE_WEB100 || USE_WEB10G
 #include <web100.h>
+#else
+#include "dummytypedefs.h"
+#endif
 
 #include "logging.h"
 #include "network.h"
@@ -1082,6 +1086,7 @@ void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_va
   int a, i;
 
   char webVarsFileName[256];
+#if USE_WEB100 || USE_WEB10G
   snprintf(webVarsFileName, strlen(webVarsValuesLog) - 10, "%s", webVarsValuesLog);
   snprintf(&webVarsFileName[strlen(webVarsFileName)], sizeof(webVarsFileName)-strlen(webVarsFileName),
     "_%s_vars.log", TCP_STAT_NAME);
@@ -1107,6 +1112,7 @@ void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_va
   }
 
   fclose(file);
+#endif
 }
 
 static tcp_stat_var agg_vars_sum(int connNum, int varId, struct tcp_vars* vars) {
@@ -1153,6 +1159,7 @@ void tcp_stat_log_agg_vars_to_file(char* webVarsValuesLog, int connNum, struct t
   int a;
   tcp_stat_var varValue;
 
+#if USE_WEB100 || USE_WEB10G
   FILE* file = fopen(webVarsValuesLog, "w");
 
   if (!file) {
@@ -1196,6 +1203,7 @@ void tcp_stat_log_agg_vars_to_file(char* webVarsValuesLog, int connNum, struct t
   }
 
   fclose(file);
+#endif
 }
 
 /**
@@ -1213,6 +1221,7 @@ void tcp_stat_log_agg_vars_to_file(char* webVarsValuesLog, int connNum, struct t
 
 int CwndDecrease(char* logname, u_int32_t *dec_cnt,
                  u_int32_t *same_cnt, u_int32_t *inc_cnt) {
+#if USE_WEB100 || USE_WEB10G
 #if USE_WEB100
   web100_var* var;
   char buff[256];
@@ -1316,6 +1325,7 @@ int CwndDecrease(char* logname, u_int32_t *dec_cnt,
       "-=-=-=- CWND window report: increases = %d, decreases = %d, "
       "no change = %d",
       *inc_cnt, *dec_cnt, *same_cnt);
+#endif
   return (0);
 }
 

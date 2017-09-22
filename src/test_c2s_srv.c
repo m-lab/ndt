@@ -503,7 +503,9 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), c2s_conns[0].socket, 0);
 
   // Get tcp_stat connection. Used to collect tcp_stat variable statistics
+#if USE_WEB100 || USE_WEB10G
   conn = tcp_stat_connection_from_socket(agent, c2s_conns[0].socket);
+#endif
 
   // set up packet tracing. Collected data is used for bottleneck link
   // calculations
@@ -563,7 +565,9 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
               mon_pipe[0], mon_pipe[1]);
 
   // experimental code, delete when finished
+#if USE_WEB100 || USE_WEB10G
   setCwndlimit(conn, group, agent, options);
+#endif
 
   // Create C->S snaplog directories, and perform some initialization based on
   // options
@@ -580,6 +584,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   send_json_message_any(ctl, TEST_START, "", 0, testOptions->connection_flags,
                         JSON_SINGLE_VALUE);
 
+#if USE_WEB100 || USE_WEB10G
   // If snaplog recording is enabled, update meta file to indicate the same
   // and proceed to get snapshot and log it.
   // This block is needed here since the meta file stores names without the
@@ -594,6 +599,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   if (options->snapshots)
     start_snap_worker(&snapArgs, agent, NULL, options->snaplog, &workerThreadId,
                       options->c2s_logname, conn, group);
+#endif
   // Wait on listening socket and read data once ready.
   start_time = secs();
   throughputSnapshotTime = start_time + (options->c2s_snapsoffset / 1000.0);
@@ -679,10 +685,12 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   send_json_message_any(ctl, TEST_MSG, buff, strlen(buff),
                         testOptions->connection_flags, JSON_SINGLE_VALUE);
 
+#if USE_WEB100 || USE_WEB10G
   // get receiver side Web100 stats and write them to the log file. close
   // sockets
   if (record_reverse == 1)
     tcp_stat_get_data_recv(c2s_conns[0].socket, agent, conn, count_vars);
+#endif
 
 
   close_all_connections(c2s_conns, streamsNum);

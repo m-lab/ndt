@@ -668,6 +668,8 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   tcp_stat_connection conn = NULL;
 #elif USE_WEB10G
   tcp_stat_connection conn = -1;
+#else
+  tcp_stat_connection conn = 0;
 #endif
   char date[32];      // date indicator
   char spds[4][256];  // speed "bin" array containing counters for speeds
@@ -745,11 +747,15 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   spd_index = 0;
 
   // obtain web100 connection and check auto-tune status
+#if USE_WEB100 || USE_WEB10G
   conn = tcp_stat_connection_from_socket(agent, ctl->socket);
   autotune = tcp_stat_autotune(ctl->socket, agent, conn);
 
   // client needs to be version compatible. Send current version
   snprintf(buff, sizeof(buff), "v%s", VERSION "-" TCP_STAT_NAME);
+#else
+  snprintf(buff, sizeof(buff), "v%s", VERSION "-NOWEB100" );
+#endif
   send_json_message_any(ctl, MSG_LOGIN, buff, strlen(buff),
                         testopt->connection_flags, JSON_SINGLE_VALUE);
 

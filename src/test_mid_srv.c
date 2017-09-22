@@ -236,6 +236,7 @@ int test_mid(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
 
     buff[0] = '\0';
     // get tcp_stat connection data
+#if USE_WEB100 || USE_WEB10G
 #if USE_WEB100
     if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == NULL) {
 #elif USE_WEB10G
@@ -249,6 +250,9 @@ int test_mid(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
       /* exit(-1); */
       return -3;
     }
+#else
+    conn = NULL;  // Put here to avoid uninitialized variable warnings
+#endif
 
     // Perform S->C throughput test. Obtained results in "buff"
     tcp_stat_middlebox(midsfd, agent, conn, results_keys, sizeof(results_keys), buff, sizeof(buff));

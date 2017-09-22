@@ -46,9 +46,10 @@
 #include <signal.h>
 #if USE_WEB100
 #include <web100.h>
-#endif
-#if USE_WEB10G
+#elif USE_WEB10G
 #include <estats.h>
+#else
+#include "dummytypedefs.h"
 #endif
 #ifdef HAVE_LIBPCAP
 #include <pcap.h>

@@ -9,7 +9,6 @@
 #include <string.h>
 // #include <ctype.h>
 #include <pthread.h>
-#include <web100.h>
 
 #include "testoptions.h"
 #include "network.h"
@@ -559,6 +558,8 @@ void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
       log_print(1, "now write %d to limit the Receive window",
                 limrwin_val);
       web100_raw_write(LimRwin, connarg, &limrwin_val);
+      log_println(1, "  ---  Done");
+    }
 #elif USE_WEB10G
     if (connarg != -1) {
       log_println(1,
@@ -569,9 +570,9 @@ void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
       limrwin_val = optionsarg->limit * yar.uv32;
       log_print(1, "now write %d to limit the Receive window", limrwin_val);
       estats_write_var("LimRwin", limrwin_val, connarg, agentarg);
-#endif
       log_println(1, "  ---  Done");
     }
+#endif
   }
 }
 
