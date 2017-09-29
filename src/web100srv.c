@@ -750,12 +750,10 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 #if USE_WEB100 || USE_WEB10G
   conn = tcp_stat_connection_from_socket(agent, ctl->socket);
   autotune = tcp_stat_autotune(ctl->socket, agent, conn);
+#endif
 
   // client needs to be version compatible. Send current version
   snprintf(buff, sizeof(buff), "v%s", VERSION "-" TCP_STAT_NAME);
-#else
-  snprintf(buff, sizeof(buff), "v%s", VERSION "-NOWEB100" );
-#endif
   send_json_message_any(ctl, MSG_LOGIN, buff, strlen(buff),
                         testopt->connection_flags, JSON_SINGLE_VALUE);
 
