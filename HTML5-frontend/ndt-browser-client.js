@@ -245,7 +245,7 @@ NDTjs.prototype.ndtC2sTest = function () {
         nextCallback += that.updateInterval;
         currentTime = Date.now() / 1000.0;
       }
-
+    }
     if (currentTime < testStart + 10) {
       setTimeout(keepSendingData, 0);
     } else {
