@@ -15,6 +15,29 @@
     <script type="text/javascript">
     var simulate = false;
     var allowDebug = false;
+
+    // If we're running this from the NDT server, skip the mlab-ns lookup.
+    if (!/^ndt.iupui.mlab.+\.measurement-lab.org$/.test(window.location.hostname)) {
+      // Look up a suitable NDT server using mlab-ns. The global variable
+      //  ndtServer is used by the backend javascript to determine which
+      //  server to test against.
+      var ndtServer;
+      (function () {
+        var mlabNsService = 'https:' == location.protocol ? 'ndt_ssl' : 'ndt';
+        var mlabNsUrl = 'https://mlab-ns.appspot.com/';
+        $.ajax({
+          url: mlabNsUrl + mlabNsService + '?format=json',
+          dataType: 'json',
+          success: function(resp) {
+            console.log('Using NDT server: ' + resp.fqdn);
+            ndtServer = resp.fqdn;
+          },
+          error: function(jqXHR, errStatus, errText) {
+            console.log('mlab-ns lookup failed: ' + errStatus + ' ' + errText);
+          }
+        });
+      })();
+    }
     </script>
 </head>
 <body class="initializing">
@@ -26,7 +49,7 @@
 
     <p>The Network Diagnostic Tool (NDT) provides a sophisticated speed and diagnostic test. An NDT test reports more than just the upload and download speeds &mdash; it also attempts to determine what, if any, problems limited these speeds, differentiating between computer configuration and network infrastructure problems. While the diagnostic messages are most useful for expert users, they can also help novice users by allowing them to provide detailed trouble reports to their network&nbsp;administrator.</p>
 
-    <p>This NDT test uses <a href="https://en.wikipedia.org/wiki/WebSocket">WebSockets</a>. Most modern browsers should support running this test. If you are experiencing problems, make sure that your browser has javascript enabled and supports WebSockets.</p> 
+    <p>This NDT test uses <a href="https://en.wikipedia.org/wiki/WebSocket">WebSockets</a>. Most modern browsers should support running this test. If you are experiencing problems, make sure that your browser has javascript enabled and supports WebSockets.</p>
 
     <div is="learn_more">
       <a href="http://software.internet2.edu/ndt/">Learn more about NDT</a> &ndash; <a href="http://www.measurementlab.net/">Learn more about Measurement Lab</a>
@@ -45,7 +68,7 @@
     </div>
   </div>
   <div id="test" class="page">
-    
+
     <div id="loading">
       <h2 class="centered">Preparing your tests...</h2>
     </div>
@@ -53,7 +76,7 @@
       <h2 class="centered">Now testing <em>your upload speed</em></h2>
     </div>
     <div id="download" class="test">
-      <h2 class="centered">Now testing <em>your download speed</em></h2>      
+      <h2 class="centered">Now testing <em>your download speed</em></h2>
     </div>
 
     <canvas id="uploadGauge"></canvas>
@@ -135,4 +158,3 @@
 
 </body>
 </html>
-
